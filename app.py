@@ -3,8 +3,8 @@ import pandas as pd
 import random
 
 st.set_page_config(page_title="상담 배정 마법사", layout="wide")
-st.title("🏫 선생님 전용 상담 배정 (지망 반영)")
-st.caption("날짜(가로/열) x 시간(세로/행) 배정 및 지능형 배정 로직 탑재")
+st.title("🏫 선생님 전용 상담 배정 (지망 & 방식 반영)")
+st.caption("날짜(가로/열) x 시간(세로/행) 배정 및 방문/전화 방식 선택 기능 탑재")
 
 # --- 데이터 저장소 초기화 ---
 if 'student_list' not in st.session_state: st.session_state.student_list = []
@@ -14,6 +14,8 @@ if 'current_choices' not in st.session_state: st.session_state.current_choices =
 # --- 기능 함수 ---
 def save_student():
     name = st.session_state.student_input.strip()
+    method = st.session_state.consult_method # 📌 상담 방식 가져오기
+    
     if not name:
         st.warning("⚠️ 학생 이름을 입력해 주세요.")
         return
@@ -23,9 +25,10 @@ def save_student():
         return
     if name and st.session_state.current_choices:
         choices = st.session_state.current_choices + ["선택안함"] * (3 - len(st.session_state.current_choices))
-        st.session_state.student_list.append({"이름": name, "지망": choices[:3]})
+        # 📌 저장 시 '방식' 데이터 추가
+        st.session_state.student_list.append({"이름": name, "지망": choices[:3], "방식": method})
         st.session_state.current_choices, st.session_state.student_input = [], ""
-        st.toast(f"✅ {name} 학생 저장 완료!")
+        st.toast(f"✅ {name}({method}) 학생 저장 완료!")
     else:
         st.warning("⚠️ 지망 시간을 최소 1개 이상 선택해 주세요.")
 
@@ -73,26 +76,30 @@ for t in times:
             else: st.session_state.disabled_slots.add(slot)
             st.rerun()
 
-# --- 2단계: 학생 지망 입력 ---
+# --- 2단계: 학생 지망 및 상담 방식 입력 ---
 st.write("---")
-st.subheader("✍️ 2단계: 학생 지망 입력")
+st.subheader("✍️ 2단계: 학생 지망 및 상담 방식 입력")
 col_l, col_r = st.columns([1, 2.5])
 
 with col_l:
     st.text_input("1️⃣ 학생 이름 입력", key="student_input", placeholder="예: 김철수")
+    # 📌 상담 방식 선택 라디오 버튼 추가
+    st.radio("2️⃣ 상담 방식 선택", ["방문 🏠", "전화 📞"], key="consult_method", horizontal=True)
+    
     st.button("➕ 명단에 추가하기", on_click=save_student, type="primary", use_container_width=True)
+    
     if st.session_state.student_list:
         st.write(f"**현재 명단 ({len(st.session_state.student_list)}명)**")
         for idx, s in enumerate(st.session_state.student_list):
             with st.container(border=True):
                 c1, c2 = st.columns([4, 1])
-                c1.write(f"**{idx+1}. {s['이름']}**")
-                # 📌 요청하신 대로 '1지망:', '2지망:' 형태로 수정했습니다.
+                # 📌 명단에 방식(방문/전화) 표시
+                c1.write(f"**{idx+1}. {s['이름']} ({s['방식']})**")
                 c1.caption(f"1지망: {s['지망'][0]}\n2지망: {s['지망'][1]}\n3지망: {s['지망'][2]}")
                 if c2.button("🗑️", key=f"del_{idx}"): delete_student(idx)
 
 with col_r:
-    st.write("#### 2️⃣ 지망 시간 클릭")
+    st.write("#### 3️⃣ 지망 시간 클릭")
     h_sel = st.columns([1.2] + [1]*len(dates))
     h_sel[0].write("**시간**")
     for i, d in enumerate(dates): h_sel[i+1].write(f"**{d}**")
@@ -116,13 +123,11 @@ if st.button("🚀 '양보와 타협' 최적 배정 시작", type="primary", use
     if not st.session_state.student_list: 
         st.error("명단이 없습니다. 학생을 먼저 추가해 주세요.")
     else:
-        # 📌 최신 설정값 정제
         final_dates = [d.strip() for d in dates if d.strip()]
         final_times = [t.strip() for t in times if t.strip()]
         all_slots = [f"{d} {t}" for d in final_dates for t in final_times if f"{d} {t}" not in st.session_state.disabled_slots]
         
         students = st.session_state.student_list.copy()
-        # 지망이 적은(간절한) 학생부터 정렬
         students.sort(key=lambda x: len([c for c in x['지망'] if c != "선택안함"]))
         
         match = {}
@@ -132,7 +137,8 @@ if st.button("🚀 '양보와 타협' 최적 배정 시작", type="primary", use
                 if any(m['name'] == std['이름'] for m in match.values()): continue
                 wish = std['지망'][r]
                 if wish != "선택안함" and wish in all_slots and wish not in match:
-                    match[wish] = {'name': std['이름'], 'rank': r + 1}
+                    # 📌 매칭 결과에 '방식' 데이터 포함
+                    match[wish] = {'name': std['이름'], 'rank': r + 1, 'method': std['방식']}
 
         assigned = [m['name'] for m in match.values()]
         for std in students:
@@ -140,12 +146,11 @@ if st.button("🚀 '양보와 타협' 최적 배정 시작", type="primary", use
                 empty = [s for s in all_slots if s not in match]
                 if empty:
                     pick = random.choice(empty)
-                    match[pick] = {'name': std['이름'], 'rank': "수동"}
+                    match[pick] = {'name': std['이름'], 'rank': "수동", 'method': std['방식']}
 
-        st.subheader("🗓️ 최종 상담 시간표")
+        st.subheader("🗓️ 최종 상담 시간표 (방식 반영)")
         grid = pd.DataFrame("", index=final_times, columns=final_dates)
         
-        # 안전장치 적용
         for s in st.session_state.disabled_slots:
             try:
                 d, t = s.rsplit(' ', 1)
@@ -158,17 +163,17 @@ if st.button("🚀 '양보와 타협' 최적 배정 시작", type="primary", use
                 d, t = slot.rsplit(' ', 1)
                 if d in final_dates and t in final_times:
                     rank_lbl = f"{info['rank']}지망" if isinstance(info['rank'], int) else "수동"
-                    grid.at[t, d] = f"★{info['name']}★({rank_lbl})"
+                    # 📌 최종 결과창에 이름(지망/방식) 형태로 표시
+                    grid.at[t, d] = f"★{info['name']}★\n({rank_lbl}/{info['method']})"
             except: continue
         
         st.table(grid)
         st.success("✅ 선생님, 최적의 배정이 완료되었습니다!")
 
-# 10. 엑셀(CSV) 다운로드 기능 (한글 깨짐 방지 처리)
         csv_data = grid.to_csv().encode('utf-8-sig')
         st.download_button(
             label="📥 최종 시간표 엑셀(CSV) 다운로드",
             data=csv_data,
-            file_name="상담_최종시간표.csv",
+            file_name="상담_최종시간표_방식포함.csv",
             mime="text/csv"
         )
