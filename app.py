@@ -3,7 +3,7 @@ import pandas as pd
 import random
 
 st.set_page_config(page_title="상담 배정 마법사", layout="wide")
-st.title("🏫 선생님 전용 상담 배정기 (최종 완결판)")
+st.title("🏫 선생님 전용 상담 배정 (지망 반영)")
 st.caption("날짜(가로/열) x 시간(세로/행) 배정 및 지능형 배정 로직 탑재")
 
 # --- 데이터 저장소 초기화 ---
@@ -163,3 +163,12 @@ if st.button("🚀 '양보와 타협' 최적 배정 시작", type="primary", use
         
         st.table(grid)
         st.success("✅ 선생님, 최적의 배정이 완료되었습니다!")
+
+# 10. 엑셀(CSV) 다운로드 기능 (한글 깨짐 방지 처리)
+        csv_data = grid.to_csv().encode('utf-8-sig')
+        st.download_button(
+            label="📥 최종 시간표 엑셀(CSV) 다운로드",
+            data=csv_data,
+            file_name="상담_최종시간표.csv",
+            mime="text/csv"
+        )
