@@ -136,7 +136,7 @@ with col_r:
 
 # --- 3단계: 배정 알고리즘 ---
 st.write("---")
-if st.button("🚀 '양보와 타협' 최적 배정 시작", type="primary", use_container_width=True):
+if st.button("🚀 최적 배정 시작", type="primary", use_container_width=True):
     if not st.session_state.student_list: 
         st.error("명단이 없습니다. 학생을 먼저 추가해 주세요.")
     else:
