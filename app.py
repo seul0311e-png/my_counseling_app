@@ -69,11 +69,13 @@ with st.sidebar:
         st.rerun()
     st.caption("모든 데이터를 지우고 처음부터 다시 시작합니다.")
 
-# --- 1단계: 날짜 및 시간대 설정 ---
-with st.expander("📅 1단계: 날짜 및 시간대 설정", expanded=False):
+# --- 1단계: 설정 (제목을 더 친절하게 수정) ---
+# expanded=False 로 두어 처음엔 닫혀 있게 합니다.
+with st.expander("📅 1단계: [클릭] 여기를 눌러 우리 반 날짜와 시간을 수정하세요 ✨", expanded=False):
+    st.info("💡 아래 텍스트 상자의 내용을 수정하면 상담 표가 자동으로 변경됩니다. (한 줄에 하나씩 입력)")
     c_d, c_t = st.columns(2)
-    dates = [d.strip() for d in c_d.text_area("🗓️ 날짜", value="3.30(월)\n3.31(화)\n4.1(수)\n4.2(목)\n4.3(금)").split('\n') if d.strip()]
-    times = [t.strip() for t in c_t.text_area("⏰ 시간대", value="14:00\n14:20\n14:40\n15:00\n15:20\n15:40").split('\n') if t.strip()]
+    dates = [d.strip() for d in c_d.text_area("🗓️ 날짜 수정", value="3.30(월)\n3.31(화)\n4.1(수)\n4.2(목)\n4.3(금)").split('\n') if d.strip()]
+    times = [t.strip() for t in c_t.text_area("⏰ 시간대 수정", value="14:00\n14:20\n14:40\n15:00\n15:20\n15:40").split('\n') if t.strip()]
 
 # --- 1단계: 불가 시간 설정 ---
 st.subheader("🚫 1단계: 상담 불가 시간 체크")
