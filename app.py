@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import random
+from io import BytesIO  # 📌 엑셀 파일을 메모리에서 만들기 위한 도구
 
 st.set_page_config(page_title="상담 배정 마법사", layout="wide")
 
@@ -207,4 +208,18 @@ if st.button("🚀 배정 시작", type="primary", use_container_width=True):
         
         st.table(grid)
         st.success(f"✅ {teacher_mode}로 배정이 완료되었습니다!")
-        st.download_button("📥 최종 시간표 엑셀 다운로드", grid.to_csv().encode('utf-8-sig'), "상담시간표.csv", "text/csv")
+
+        
+# --- 엑셀(.xlsx) 다운로드 기능 ---
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            grid.to_excel(writer, index=True, sheet_name='상담시간표')
+        
+        excel_data = output.getvalue()
+
+        st.download_button(
+            label="📥 최종 시간표 엑셀(.xlsx) 다운로드",
+            data=excel_data,
+            file_name="상담_최종시간표.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
